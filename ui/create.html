@@ -29,6 +29,7 @@
       <div class="create-form">
         <div class="create-box">
           <h1 class="page-title">Create an event</h1>
+
           <div class="field">
             <label for="event-name">Event name</label>
             <input
@@ -39,7 +40,7 @@
               autocomplete="off"
             />
           </div>
-          
+
           <div class="field">
             <label for="creator-name">Your name</label>
             <input
@@ -53,30 +54,30 @@
 
           <fieldset class="times-fieldset">
             <legend>Possible times</legend>
-          
+
             <p class="field-help">
               Choose 2–10 one-hour times. Each time starts at the top of the hour.
             </p>
-          
+
             <div class="field">
               <label class="visually-hidden" for="time-1">Time 1</label>
               <input id="time-1" name="time" type="datetime-local" />
             </div>
-          
+
             <div class="field">
               <label class="visually-hidden" for="time-2">Time 2</label>
               <input id="time-2" name="time" type="datetime-local" />
             </div>
-          
+
             <div class="field field-with-action">
               <label class="visually-hidden" for="time-3">Time 3</label>
-          
+
               <input
                 id="time-3"
                 name="time"
                 type="datetime-local"
               />
-          
+
               <button
                 class="btn btn-primary btn-icon"
                 type="button"
@@ -86,7 +87,7 @@
               </button>
             </div>
           </fieldset>
-          
+
           <div class="create-add">
             <button
               class="btn btn-primary btn-icon"
@@ -96,7 +97,16 @@
               +
             </button>
           </div>
+        </div>
 
+        <div class="create-actions">
+          <button class="btn btn-primary" type="button">
+            Cancel
+          </button>
+
+          <button class="btn btn-primary" type="button">
+            Create event
+          </button>
         </div>
       </div>
     </div>
