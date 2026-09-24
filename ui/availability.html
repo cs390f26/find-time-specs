@@ -19,39 +19,59 @@
     <div class="page">
       <header class="site-header">
         <div class="brand">
-            <div class="header-actions">
-                <button class="btn btn-primary" type="button">
-                  All events
-                </button>
-              
-                <button class="btn btn-primary" type="button">
-                  Results
-                </button>
-              </div>   
           Find a Time
           <span class="brand-tag">
             Create an event. Share availability. Find the best time.
           </span>
         </div>
+
+        <div class="header-actions">
+          <button class="btn btn-primary" type="button">
+            All events
+          </button>
+
+          <button class="btn btn-primary" type="button">
+            Results
+          </button>
+        </div>
       </header>
 
       <article class="panel availability-panel">
         <header class="panel-header">
-            <h1 class="page-title">CS 390 Study Group</h1>
-            <p class="event-meta">Created by Joshua</p>
-          </header>
-          
-          <div class="field">
-            <label for="participant-name">Your name</label>
-          
-            <input
-              id="participant-name"
-              name="participant-name"
-              type="text"
-              value=""
-              autocomplete="off"
-            />
-          </div>
+          <h1 class="page-title">CS 390 Study Group</h1>
+          <p class="event-meta">Created by Joshua</p>
+        </header>
+
+        <div class="field">
+          <label for="participant-name">Your name</label>
+
+          <input
+            id="participant-name"
+            name="participant-name"
+            type="text"
+            value=""
+            autocomplete="off"
+          />
+        </div>
+
+        <fieldset class="availability-fieldset">
+          <legend>Select the times you are available</legend>
+
+          <label class="check-option">
+            <input type="checkbox" name="slot" value="3" />
+            <span>Monday, Sep 28 · 4:00 PM–5:00 PM</span>
+          </label>
+
+          <label class="check-option">
+            <input type="checkbox" name="slot" value="4" />
+            <span>Tuesday, Sep 29 · 4:00 PM–5:00 PM</span>
+          </label>
+
+          <label class="check-option">
+            <input type="checkbox" name="slot" value="5" />
+            <span>Wednesday, Sep 30 · 6:00 PM–7:00 PM</span>
+          </label>
+        </fieldset>
       </article>
     </div>
   </body>
