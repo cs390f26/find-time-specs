@@ -50,7 +50,7 @@
               autocomplete="off"
             />
           </div>
-          
+
           <fieldset class="times-fieldset">
             <legend>Possible times</legend>
           
@@ -68,11 +68,35 @@
               <input id="time-2" name="time" type="datetime-local" />
             </div>
           
-            <div class="field">
+            <div class="field field-with-action">
               <label class="visually-hidden" for="time-3">Time 3</label>
-              <input id="time-3" name="time" type="datetime-local" />
+          
+              <input
+                id="time-3"
+                name="time"
+                type="datetime-local"
+              />
+          
+              <button
+                class="btn btn-primary btn-icon"
+                type="button"
+                aria-label="Remove time"
+              >
+                −
+              </button>
             </div>
           </fieldset>
+          
+          <div class="create-add">
+            <button
+              class="btn btn-primary btn-icon"
+              type="button"
+              aria-label="Add time"
+            >
+              +
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
