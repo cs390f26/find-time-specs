@@ -1,7 +1,7 @@
 # find-time-specs
 josh jones clay alvarez finn dempsey
 
-# Find a Time Specs
+# Find Time Specs
 
 This repo contains the specification for a simple scheduling app that allows users to create an event with various one-hour time slots submit their availability, and view the combined results.  We will deploy this application in a variety of ways using cloud technologies.
 
