@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create event</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="site-header">
+        <div class="brand">
+          Find a Time
+          <span class="brand-tag">Create an event. Share availability. Find the best time.</span>
+        </div>
+      </header>
+
+      <div class="create-form">
+        <div class="create-box">
+          <h1 class="page-title">Create an event</h1>
+
+          <div class="field">
+            <label for="event-name">Event name</label>
+            <input id="event-name" name="event-name" type="text" value="" autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="creator-name">Your name</label>
+            <input id="creator-name" name="creator-name" type="text" value="" autocomplete="off" />
+          </div>
+
+          <fieldset class="times-fieldset">
+            <legend>Possible times</legend>
+            <p class="field-help">Choose 2–10 one-hour times. Each time starts at the top of the hour.</p>
+
+            <div class="field">
+              <label class="visually-hidden" for="time-1">Time 1</label>
+              <input id="time-1" name="time" type="datetime-local" />
+            </div>
+
+            <div class="field">
+              <label class="visually-hidden" for="time-2">Time 2</label>
+              <input id="time-2" name="time" type="datetime-local" />
+            </div>
+
+            <div class="field field-with-action">
+              <label class="visually-hidden" for="time-3">Time 3</label>
+              <input id="time-3" name="time" type="datetime-local" />
+              <button class="btn btn-primary btn-icon" type="button" aria-label="Remove time">−</button>
+            </div>
+          </fieldset>
+
+          <div class="create-add">
+            <button class="btn btn-primary btn-icon" type="button" aria-label="Add time">+</button>
+          </div>
+        </div>
+
+        <div class="create-actions">
+          <button class="btn btn-primary" type="button">Cancel</button>
+          <button class="btn btn-primary" type="button">Create event</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
