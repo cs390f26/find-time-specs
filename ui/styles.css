@@ -259,3 +259,68 @@
     border-color: var(--brand);
     background: var(--surface);
   }
+  .create-box {
+    padding: 1.35rem 1.35rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  
+  .create-box .page-title {
+    margin-bottom: 1.25rem;
+  }
+  
+  .times-fieldset,
+  .availability-fieldset {
+    margin: 1.25rem 0 0;
+    padding: 0;
+    border: 0;
+  }
+  
+  .field-help {
+    margin: 0.25rem 0 0.85rem;
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+  }
+  
+  .field-with-action {
+    position: relative;
+  }
+  
+  .field-with-action input {
+    padding-right: 2.75rem;
+  }
+  
+  .field-with-action .btn-icon {
+    position: absolute;
+    top: 50%;
+    right: 0.4rem;
+    transform: translateY(-50%);
+  }
+  
+  .btn-icon {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border-radius: 999px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+  
+  .create-add {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+    padding-right: 0.4rem;
+  }
+  
+  .create-actions,
+  .panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
