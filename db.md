@@ -1,73 +1,212 @@
-# Find a Time Database Schema
+# DynamoDB Data Model
 
- Three tables used by the Find a Time application: `EVENTS`, `TIME_SLOTS`, and `AVAILABILITY`.
+Find a Time uses one DynamoDB table to store events and participant responses.
 
-Primary keys use integer IDs. Each event has between 2 and 10 possible one-hour time slots. Time slots belong to a specific event, and participant availability is linked to both the event and the selected time slot.
+The table uses:
 
-## EVENTS
+- `event_id` as the partition key
+- `record_id` as the sort key
 
-Stores the basic information for each event.
+Items with the same `event_id` belong to the same event.
 
-| **Column** | **Type** | **Key / relationship** | **Purpose** |
-| --- | --- | --- | --- |
-| `event_id` | `INTEGER` | Primary key | Unique identifier for an event. |
-| `event_name` | `VARCHAR(255)` | — | Name of the event. |
-| `creator_name` | `VARCHAR(255)` | — | Name of the person who created the event. |
+---
 
-`EVENTS.event_id` is referenced by `TIME_SLOTS.event_id` and `AVAILABILITY.event_id`.
+## Access Patterns
 
-The response count is not saved in this table. The app gets it by counting the different response_id values for that event in the AVAILABILITY table.
+The application needs to support these data operations:
 
-## TIME_SLOTS
+- Create an event with 2–10 possible time slots
+- List event summaries
+- Get one event and its possible time slots
+- Record one participant response
+- Record a response when none of the proposed times work
+- Count submitted responses for an event
+- Group responses by time slot
+- List participants available for each time slot
+- List participants who responded that no time works
 
-Stores the possible meeting times created for each event.
+---
 
-| **Column** | **Type** | **Key / relationship** | **Purpose** |
-| --- | --- | --- | --- |
-| `slot_id` | `INTEGER` | Primary key | Unique identifier for a time slot. |
-| `event_id` | `INTEGER` | Linked to `EVENTS.event_id` | Event that the time slot belongs to. |
-| `start_time` | `TIMESTAMP` | — | Start of the one-hour meeting block. |
+## Event Item
 
-Each time slot belongs to exactly one event. An event must have at least 2 time slots and may have at most 10.
+Each event has one item containing the event information and its possible meeting times.
 
-Each time slot represents a one-hour block beginning at the top of the hour. The application does not need to store an end_time because it can be calculated as one hour after start_time.
+Example:
 
-Duplicate start times are not allowed within the same event.
+```json
+{
+  "event_id": 2,
+  "record_id": "EVENT",
+  "record_type": "EVENT",
+  "event_name": "CS 390 Study Group",
+  "creator_name": "Joshua",
+  "time_slots": [
+    {
+      "slot_id": 3,
+      "start_time": "2026-09-28T16:00:00-04:00"
+    },
+    {
+      "slot_id": 4,
+      "start_time": "2026-09-29T16:00:00-04:00"
+    },
+    {
+      "slot_id": 5,
+      "start_time": "2026-09-30T18:00:00-04:00"
+    }
+  ]
+}
+```
 
-## AVAILABILITY
+### Event Item Fields
 
-Stores participant responses for an event.
+| Field | Type | Notes |
+| --- | --- | --- |
+| `event_id` | Number | Partition key and unique event identifier |
+| `record_id` | String | Sort key; `"EVENT"` identifies the event item |
+| `record_type` | String | `"EVENT"` |
+| `event_name` | String | Required event name |
+| `creator_name` | String | Required creator name |
+| `time_slots` | List | Contains between 2 and 10 possible meeting times |
 
-| **Column** | **Type** | **Key / relationship** | **Purpose** |
-| --- | --- | --- | --- |
-| `availability_id` | `INTEGER` | Primary key | Unique identifier for an availability row. |
-| `response_id` | `INTEGER` | Groups rows from one submission | Identifies the rows created by one participant response. |
-| `event_id` | `INTEGER` | Linked to `EVENTS.event_id` | Event the participant is responding to. |
-| `slot_id` | `INTEGER`, nullable | Linked to `TIME_SLOTS.slot_id` | Time the participant selected. `NULL` means none of the listed times work. |
-| `participant_name` | `VARCHAR(255)` | — | Name entered by the participant. |
+Each time slot contains:
 
-Only the time slots that a participant says they are available for are stored.
+| Field | Type | Notes |
+| --- | --- | --- |
+| `slot_id` | Number | Identifier for a time within the event |
+| `start_time` | String | ISO 8601 start time for the one-hour block |
 
-If a participant selects more than one time, the application creates multiple rows with the same `response_id`, `event_id`, and `participant_name`, but different `slot_id` values. This keeps all selections from one submission grouped together.
+Rules:
+
+- each event has between 2 and 10 time slots
+- every time slot belongs to the event containing it
+- each time begins at the top of the hour
+- each time represents a one-hour block
+- duplicate start times are not allowed within the same event
+
+---
+
+## Response Item
+
+Each submitted availability response is stored as its own item.
+
+Example:
+
+```json
+{
+  "event_id": 2,
+  "record_id": "RESPONSE#1001",
+  "record_type": "RESPONSE",
+  "response_id": 1001,
+  "participant_name": "Clannys",
+  "selected_slot_ids": [3, 5]
+}
+```
+
+### Response Item Fields
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `event_id` | Number | Partition key identifying the event |
+| `record_id` | String | Sort key identifying the response |
+| `record_type` | String | `"RESPONSE"` |
+| `response_id` | Number | Unique identifier for one submitted response |
+| `participant_name` | String | Name entered by the participant |
+| `selected_slot_ids` | List | IDs of the event times the participant selected |
+
+A response stores all of the participant's selected time slots in one item.
+
+For example:
+
+```json
+{
+  "participant_name": "Clannys",
+  "selected_slot_ids": [3, 5]
+}
+```
+
+means Clannys is available for time slots 3 and 5.
+
+---
+
+## Response With No Available Times
+
+A participant may submit a response even when none of the proposed times work.
+
+ the response uses an empty list:
+
+```json
+{
+  "event_id": 2,
+  "record_id": "RESPONSE#1003",
+  "record_type": "RESPONSE",
+  "response_id": 1003,
+  "participant_name": "Diego",
+  "selected_slot_ids": []
+}
+```
+
+This distinguishes between:
+
+- a participant who has not submitted a response, where no response item exists
+- a participant who responded that none of the times work, where a response item exists with an empty `selected_slot_ids` list
 
 
-Relationships
 
-An event can have many time slots and many availability responses.
+---
 
-EVENTS
-  event_id
-     |
-     |---- TIME_SLOTS.event_id
-     |
-     |---- AVAILABILITY.event_id
+## How the Items Are Related
 
-TIME_SLOTS
-  slot_id
-     |
-     |---- AVAILABILITY.slot_id
-These connections let the app match each event with its time slots and see which people are available for each time.
+Items for the same event share the same `event_id`.
 
-The app does not save a yes or no for every person and every time. It only saves the times a person says they are available. If none of the times work, the app saves one row with NULL for the time slot.
+Example:
 
-The Results page uses this data to count how many people are available for each time and show their names.
+```text
+event_id = 2
+
+record_id = EVENT
+  CS 390 Study Group
+  Joshua
+  time slots 3, 4, 5
+
+record_id = RESPONSE#1001
+  Clannys
+  selected slots 3, 5
+
+record_id = RESPONSE#1002
+  Alex
+  selected slots 3, 4, 5
+
+record_id = RESPONSE#1003
+  Diego
+  selected slots []
+```
+
+Because these items share the same partition key, the application can retrieve the event and its responses together.
+
+---
+
+## Results
+
+The application calculates the Results page from the event item and its response items.
+
+For each time slot, the application can:
+
+- count how many responses contain that `slot_id`
+- list the participant names whose responses contain that `slot_id`
+- compare the counts to determine which time or times currently have the most availability
+
+The total response count is the number of response items stored for the event.
+
+A response with an empty `selected_slot_ids` list still counts as a submitted response but does not increase the availability count for any time slot.
+
+---
+
+## Summary
+
+
+
+- the event item stores the event information and its possible times
+- each participant submission is one response item
+- all items for an event share the same `event_id`
+- `selected_slot_ids` stores the times a participant can attend
+- an empty `selected_slot_ids` list represents a participant who responded that none of the times work
