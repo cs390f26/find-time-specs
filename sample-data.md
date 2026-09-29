@@ -1,181 +1,227 @@
-# Find a Time (Sample Data)
+# Find a Time Sample Data
 
-Sample payloads for each table using the database field names, integer IDs, and ISO 8601 timestamps.
+This file shows example DynamoDB items used by Find a Time.
 
 **Machine-readable copy:** [`sample-data.json`](sample-data.json)
 
----
+The table uses:
 
-## 1: EVENTS
+- `event_id` as the partition key
+- `record_id` as the sort key
 
-```json
-[
-  {
-    "event_id": 1,
-    "event_name": "Holiday Party",
-    "creator_name": "Ben"
-  },
-  {
-    "event_id": 2,
-    "event_name": "CS 390 Study Group",
-    "creator_name": "Joshua"
-  },
-  {
-    "event_id": 3,
-    "event_name": "Project Meeting",
-    "creator_name": "Maya"
-  }
-]
-```
+Items with the same `event_id` belong to the same event.
 
 ---
 
-## 2: TIME_SLOTS
+## Holiday Party
+
+This event shows the minimum allowed number of time slots and has no participant responses.
+
+### Event Item
 
 ```json
-[
-  {
-    "slot_id": 1,
-    "event_id": 1,
-    "start_time": "2026-10-02T17:00:00-04:00"
-  },
-  {
-    "slot_id": 2,
-    "event_id": 1,
-    "start_time": "2026-10-03T17:00:00-04:00"
-  },
-  {
-    "slot_id": 3,
-    "event_id": 2,
-    "start_time": "2026-09-28T16:00:00-04:00"
-  },
-  {
-    "slot_id": 4,
-    "event_id": 2,
-    "start_time": "2026-09-29T16:00:00-04:00"
-  },
-  {
-    "slot_id": 5,
-    "event_id": 2,
-    "start_time": "2026-09-30T18:00:00-04:00"
-  },
-  {
-    "slot_id": 6,
-    "event_id": 3,
-    "start_time": "2026-10-05T10:00:00-04:00"
-  },
-  {
-    "slot_id": 7,
-    "event_id": 3,
-    "start_time": "2026-10-05T11:00:00-04:00"
-  },
-  {
-    "slot_id": 8,
-    "event_id": 3,
-    "start_time": "2026-10-05T12:00:00-04:00"
-  },
-  {
-    "slot_id": 9,
-    "event_id": 3,
-    "start_time": "2026-10-05T13:00:00-04:00"
-  },
-  {
-    "slot_id": 10,
-    "event_id": 3,
-    "start_time": "2026-10-05T14:00:00-04:00"
-  },
-  {
-    "slot_id": 11,
-    "event_id": 3,
-    "start_time": "2026-10-05T15:00:00-04:00"
-  },
-  {
-    "slot_id": 12,
-    "event_id": 3,
-    "start_time": "2026-10-05T16:00:00-04:00"
-  },
-  {
-    "slot_id": 13,
-    "event_id": 3,
-    "start_time": "2026-10-05T17:00:00-04:00"
-  },
-  {
-    "slot_id": 14,
-    "event_id": 3,
-    "start_time": "2026-10-05T18:00:00-04:00"
-  },
-  {
-    "slot_id": 15,
-    "event_id": 3,
-    "start_time": "2026-10-05T19:00:00-04:00"
-  }
-]
+{
+  "event_id": 1,
+  "record_id": "EVENT",
+  "record_type": "EVENT",
+  "event_name": "Holiday Party",
+  "creator_name": "Ben",
+  "time_slots": [
+    {
+      "slot_id": 1,
+      "start_time": "2026-10-02T17:00:00-04:00"
+    },
+    {
+      "slot_id": 2,
+      "start_time": "2026-10-03T17:00:00-04:00"
+    }
+  ]
+}
 ```
+
+There are no response items for this event.
 
 ---
 
-## 3: AVAILABILITY
+## CS 390 Study Group
+
+This event has three possible times and demonstrates participants who are available for some, all, and none of the times.
+
+### Event Item
 
 ```json
-[
-  {
-    "availability_id": 1,
-    "response_id": 1001,
-    "event_id": 2,
-    "slot_id": 3,
-    "participant_name": "Clannys"
-  },
-  {
-    "availability_id": 2,
-    "response_id": 1001,
-    "event_id": 2,
-    "slot_id": 5,
-    "participant_name": "Clannys"
-  },
-  {
-    "availability_id": 3,
-    "response_id": 1002,
-    "event_id": 2,
-    "slot_id": 3,
-    "participant_name": "Alex"
-  },
-  {
-    "availability_id": 4,
-    "response_id": 1002,
-    "event_id": 2,
-    "slot_id": 4,
-    "participant_name": "Alex"
-  },
-  {
-    "availability_id": 5,
-    "response_id": 1002,
-    "event_id": 2,
-    "slot_id": 5,
-    "participant_name": "Alex"
-  },
-  {
-    "availability_id": 6,
-    "response_id": 1003,
-    "event_id": 2,
-    "slot_id": null,
-    "participant_name": "Diego"
-  },
-  {
-    "availability_id": 7,
-    "response_id": 1004,
-    "event_id": 3,
-    "slot_id": 6,
-    "participant_name": "Finn"
-  }
-]
+{
+  "event_id": 2,
+  "record_id": "EVENT",
+  "record_type": "EVENT",
+  "event_name": "CS 390 Study Group",
+  "creator_name": "Joshua",
+  "time_slots": [
+    {
+      "slot_id": 3,
+      "start_time": "2026-09-28T16:00:00-04:00"
+    },
+    {
+      "slot_id": 4,
+      "start_time": "2026-09-29T16:00:00-04:00"
+    },
+    {
+      "slot_id": 5,
+      "start_time": "2026-09-30T18:00:00-04:00"
+    }
+  ]
+}
 ```
+
+### Clannys — Available for Some Times
+
+```json
+{
+  "event_id": 2,
+  "record_id": "RESPONSE#1001",
+  "record_type": "RESPONSE",
+  "response_id": 1001,
+  "participant_name": "Clannys",
+  "selected_slot_ids": [
+    3,
+    5
+  ]
+}
+```
+
+Clannys is available for time slots 3 and 5.
+
+### Alex — Available for All Times
+
+```json
+{
+  "event_id": 2,
+  "record_id": "RESPONSE#1002",
+  "record_type": "RESPONSE",
+  "response_id": 1002,
+  "participant_name": "Alex",
+  "selected_slot_ids": [
+    3,
+    4,
+    5
+  ]
+}
+```
+
+Alex is available for every proposed time.
+
+### Diego — Available for No Times
+
+```json
+{
+  "event_id": 2,
+  "record_id": "RESPONSE#1003",
+  "record_type": "RESPONSE",
+  "response_id": 1003,
+  "participant_name": "Diego",
+  "selected_slot_ids": []
+}
+```
+
+The empty `selected_slot_ids` list means Diego submitted a response, but none of the proposed times work.
+
+
+
+---
+
+## Project Meeting
+
+This event shows the maximum allowed number of time slots and a participant who is available for only one time.
+
+### Event Item
+
+```json
+{
+  "event_id": 3,
+  "record_id": "EVENT",
+  "record_type": "EVENT",
+  "event_name": "Project Meeting",
+  "creator_name": "Maya",
+  "time_slots": [
+    {
+      "slot_id": 6,
+      "start_time": "2026-10-05T10:00:00-04:00"
+    },
+    {
+      "slot_id": 7,
+      "start_time": "2026-10-05T11:00:00-04:00"
+    },
+    {
+      "slot_id": 8,
+      "start_time": "2026-10-05T12:00:00-04:00"
+    },
+    {
+      "slot_id": 9,
+      "start_time": "2026-10-05T13:00:00-04:00"
+    },
+    {
+      "slot_id": 10,
+      "start_time": "2026-10-05T14:00:00-04:00"
+    },
+    {
+      "slot_id": 11,
+      "start_time": "2026-10-05T15:00:00-04:00"
+    },
+    {
+      "slot_id": 12,
+      "start_time": "2026-10-05T16:00:00-04:00"
+    },
+    {
+      "slot_id": 13,
+      "start_time": "2026-10-05T17:00:00-04:00"
+    },
+    {
+      "slot_id": 14,
+      "start_time": "2026-10-05T18:00:00-04:00"
+    },
+    {
+      "slot_id": 15,
+      "start_time": "2026-10-05T19:00:00-04:00"
+    }
+  ]
+}
+```
+
+### Finn — Available for One Time
+
+```json
+{
+  "event_id": 3,
+  "record_id": "RESPONSE#1004",
+  "record_type": "RESPONSE",
+  "response_id": 1004,
+  "participant_name": "Finn",
+  "selected_slot_ids": [
+    6
+  ]
+}
+```
+
+Finn is available for only time slot 6.
 
 ---
 
 ## Sample Cases Covered
 
-- **Holiday Party:** 2 time slots and no responses.
-- **CS 390 Study Group:** participants available for some times, all times, and no times.
-- **Project Meeting:** 10 time slots and a participant available for only one time.
-- `response_id` groups multiple selected times from one submission.
-- `slot_id: null` shows that a participant responded but none of the times work.
+- **Holiday Party**
+  - exactly 2 time slots
+  - no participant responses
+
+- **CS 390 Study Group**
+  - participant available for some times
+  - participant available for all times
+  - participant available for no times
+
+- **Project Meeting**
+  - exactly 10 time slots
+  - participant available for only one time
+
+- Each participant submission is stored as one response item.
+- `selected_slot_ids` stores the times the participant can attend.
+- An empty `selected_slot_ids` list represents a participant who responded that none of the times work.
+
