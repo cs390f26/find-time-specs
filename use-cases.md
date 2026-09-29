@@ -4,7 +4,7 @@ Find a Time lets anyone create an event, submit availability for an event, and v
 
 An **event** has a name, a creator, and between **2 and 10 possible one-hour time slots**. Each time slot begins at the top of the hour. The Submit Availability page and the Results page are separate views.
 
-
+This phase does not include a separate finalized-event workflow.
 
 ---
 
@@ -12,17 +12,24 @@ An **event** has a name, a creator, and between **2 and 10 possible one-hour tim
 
 Someone opens the application to see what events exist.
 
-They see a list of all events. Each event shows the event name, creator name, and number of submitted responses. When there are no events yet, the list is empty.
+They see a list of all events. Each event shows:
 
-Each event provides a way to open the Submit Availability page and a way to open the Results page. The home page also provides a way to create a new event.
+- the event name
+- the creator name
+- the number of submitted responses
+
+If there are no events, the list is empty. This is a valid result and is not treated as an error.
+
+Each event provides a way to open the Submit Availability page and the Results page. The home page also provides a way to create a new event.
 
 ### Scenarios
 
-- **Empty list** — There are no events. The list has no rows. Create Event is still available.
-- **List with data** — Each event shows the event name, creator name, and response count.
+- **Empty list** — There are no events. The list has no rows, but Create Event is still available.
+- **List with data** — Each event shows its name, creator, and response count.
 - **Open availability** — Choosing an event opens its Submit Availability page.
 - **Open results** — Choosing Results opens that event's Results page.
 - **Create event** — Choosing Create Event opens the Create Event page.
+- **Service unavailable** — If the application cannot reach a required service, the user is shown an error instead of an event list.
 
 ---
 
@@ -35,20 +42,26 @@ They provide:
 - an event name
 - their name as the event creator
 - between **2 and 10** possible meeting times
-- each meeting time starts at the top of the hour and represents a one-hour block
-- duplicate start times are not allowed within the same event
+- each meeting time starts at the top of the hour
+- each meeting time represents a one-hour block
+- no duplicate start times
 
-The system creates the event and its possible time slots.
-
-If the event name or creator name is blank, there are fewer than 2 or more than 10 time slots, a time is invalid, or the same start time is entered more than once, creation fails and the user is told the input is invalid.
+If all information is valid, the event is created.
 
 ### Scenarios
 
-- **Successful create** — The user enters a valid event name, creator name, and 2–10 valid time slots. The event is created and can be opened for availability.
-- **Minimum time slots** — The user creates an event with exactly 2 possible times. The event is valid.
-- **Maximum time slots** — The user creates an event with exactly 10 possible times. The event is valid.
-- **Invalid input** — The event name or creator name is blank, there are too few or too many time slots, or the time choices are invalid. The event is not created.
-- **Duplicate time** — The same start time is entered more than once for the event. The event is not created.
+- **Successful create** — The user enters a valid event name, creator name, and 2–10 valid times. The event is created.
+- **Minimum time slots** — Exactly 2 possible times are allowed.
+- **Maximum time slots** — Exactly 10 possible times are allowed.
+- **Blank event name** — The event is not created. The user is told that an event name is required.
+- **Blank creator name** — The event is not created. The user is told that a creator name is required.
+- **Too few time slots** — Fewer than 2 times are rejected.
+- **Too many time slots** — More than 10 times are rejected.
+- **Duplicate time** — The same proposed time cannot appear more than once.
+- **Invalid time** — A value that is not a valid date and time is rejected.
+- **Time not on the hour** — A proposed time such as 4:30 PM is rejected because time slots must start at the top of the hour.
+- **Server failure** — If the application fails unexpectedly, the event is not reported as successfully created.
+- **Service unavailable** — If a required service such as the database is unavailable, the event is not reported as successfully created.
 
 ---
 
@@ -63,17 +76,18 @@ They see:
 - all of the event's possible time slots
 - a place to enter their name
 - checkboxes for choosing the times that work
-- a **Submit Availability** button
+- a Submit Availability button
 
 The page does **not** show the current results. Results are displayed on a separate page.
 
-If the event does not exist, the user is told it was not found.
-
 ### Scenarios
 
-- **Availability page** — The event exists. The user sees the event name, creator, and all of its possible times.
-- **No responses yet** — The event can still be opened and answered even if nobody has submitted availability yet.
-- **Unknown event** — The event does not exist. The user is told the event was not found.
+- **Availability page** — The event exists. The user sees the event name, creator, and possible times.
+- **No responses yet** — The event can still be opened even if nobody has responded yet.
+- **Invalid event identifier** — The request is rejected because the event identifier is not valid.
+- **Unknown event** — The identifier is valid, but no event with that identifier exists. The user is told the event was not found.
+- **Server failure** — An unexpected application error is shown to the user.
+- **Service unavailable** — The page cannot be loaded if a required service is temporarily unavailable.
 
 ---
 
@@ -81,23 +95,28 @@ If the event does not exist, the user is told it was not found.
 
 Someone has an event open and wants to submit the times they are available.
 
-They enter their name and select the time slots that work for them. The system records only the selected times.
+They enter their name and select the time slots that work for them.
 
-A participant may also submit the form with no time slots selected. This means they responded, but none of the proposed times work.
+The system records the participant's response and the time slots they selected.
 
-After a successful submission, the system confirms that the response was saved. The participant can then view the separate Results page.
+A participant may submit the form with no time slots selected. This means they responded, but none of the proposed times work.
 
-If the participant name is blank, the event does not exist, or a submitted time slot does not belong to the event, the response is not saved.
+After a successful submission, the system confirms that the response was saved.
 
 ### Scenarios
 
-- **Available for some times** — The participant selects some of the event's time slots and submits them successfully.
+- **Available for some times** — The participant selects some of the event's time slots and submits successfully.
 - **Available for all times** — The participant selects every listed time and submits successfully.
 - **Available for one time** — The participant selects one listed time and submits successfully.
-- **Available for no times** — The participant submits with no time slots selected. The system still records that they responded.
+- **Available for no times** — The participant submits with no time slots selected. The response is still saved.
 - **Blank participant name** — The response is rejected and the participant is asked to enter a name.
-- **Invalid time slot** — A submitted time slot does not belong to the event. The response is rejected.
-- **Unknown event** — The event does not exist. The response is not saved.
+- **Duplicate selected time** — The same time slot cannot be submitted more than once in the same response.
+- **Invalid time-slot identifier** — A submitted slot identifier must be valid.
+- **Time slot does not belong to event** — A participant cannot submit a time slot from another event.
+- **Invalid event identifier** — The response is rejected if the event identifier itself is invalid.
+- **Unknown event** — The response is rejected if the event does not exist.
+- **Server failure** — The application does not report the response as saved if an unexpected server error occurs.
+- **Service unavailable** — The application does not report the response as saved if a required service is unavailable.
 
 ---
 
@@ -105,42 +124,49 @@ If the participant name is blank, the event does not exist, or a submitted time 
 
 Someone wants to see the current availability for an event.
 
-They open the Results page and see the event name, creator name, and total number of submitted responses.
+They open the Results page and see:
 
-For each possible time, the page shows:
+- the event name
+- the creator name
+- the total number of submitted responses
+- each proposed time
+- how many participants are available for each time
+- the names of the participants available for each time
+- participants who responded that none of the proposed times work
 
-- the time slot
-- how many participants are available
-- the names of the participants who are available
-
-The page also shows participants who responded that none of the proposed times work.
-
-This summary lets users compare the time slots and see which time or times currently work for the most people.
-
-If the event has no responses yet, all time slots show zero availability.
-
-If the event does not exist, the user is told it was not found.
+The results allow users to compare the proposed times and see which time or times currently have the most availability.
 
 ### Scenarios
 
-- **No responses** — The event exists, but nobody has submitted availability. Each time shows zero available participants.
+- **No responses** — The event exists, but nobody has submitted availability. The page still loads successfully and each time shows zero available participants.
 - **Results with responses** — The page groups responses by time slot and shows the count and names for each time.
-- **None available response** — A participant who submitted that none of the times work is shown separately from the time-slot availability.
+- **None available response** — A participant who submitted no selected times is shown separately from the time-slot availability.
 - **Tied best times** — Two or more time slots may have the same highest availability.
-- **Unknown event** — The event does not exist. The user is told the event was not found.
+- **Invalid event identifier** — The request is rejected because the event identifier is invalid.
+- **Unknown event** — The event does not exist. The user is told it was not found.
+- **Server failure** — An unexpected application error prevents the results from loading.
+- **Service unavailable** — The results cannot be loaded if a required service is temporarily unavailable.
 
 ---
 
 ## Validation and Error Cases
 
-| **Use case** | **Expected behavior** |
+| Case | Expected behavior |
 | --- | --- |
 | Event name is blank | Do not create the event. Tell the user the event name is required. |
 | Creator name is blank | Do not create the event. Tell the user the creator name is required. |
+| Time-slot list is missing | Do not create the event. Tell the user that time slots are required. |
 | Fewer than 2 or more than 10 time slots are entered | Do not create the event. Tell the user to choose between 2 and 10 times. |
-| The same time is entered more than once | Do not create the event. Tell the user to choose different times. |
+| The same proposed time appears more than once | Do not create the event. Tell the user duplicate times are not allowed. |
+| A proposed time is invalid | Do not create the event. Tell the user to enter a valid date and time. |
+| A proposed time does not start on the hour | Do not create the event. Tell the user that times must start at the top of the hour. |
 | Participant name is blank | Do not save the response. Ask the participant to enter a name. |
-| No time slots are selected | Save the response as "none of these times work." |
-| A submitted time slot does not belong to the event | Reject the response as invalid. |
-| The event does not exist | Tell the user the event was not found. |
-| The server or database is unavailable | Show an error and do not report the action as successful. |
+| `selected_slot_ids` is missing | Reject the response because the availability request is incomplete. |
+| No time slots are selected | Save the response as meaning none of the proposed times work. |
+| The same slot is submitted more than once | Reject the response as invalid. |
+| A submitted slot identifier is invalid | Reject the response as invalid. |
+| A submitted slot does not belong to the event | Reject the response as invalid. |
+| Event identifier is invalid | Reject the request as invalid. |
+| Event identifier is valid but the event does not exist | Tell the user the event was not found. |
+| Unexpected application/server failure | Show an error and do not report the action as successful. |
+| Required service or database is unavailable | Show a temporary service error and do not report the action as successful. |
