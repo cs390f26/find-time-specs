@@ -11,22 +11,29 @@ info:
 
     The web pages load without application data. JavaScript in the browser
     calls this API to get the data needed for each view and to submit new data.
-  version: 1.0.0
+
+    The API contract is independent of the database implementation. The
+    application stores events and responses as DynamoDB items, but the browser
+    only sends and receives the JSON defined here.
+  version: 1.1.0
 
 paths:
   /api/events:
     get:
       summary: List events
       description: |
-        Returns the information needed to populate the home page.
+        Returns the information needed to populate the Home page.
 
         Each event summary includes the event id, event name, creator name,
-        and number of submitted responses. Time slots and individual
-        participant availability are not included.
+        and number of submitted responses. The response count is calculated
+        from the number of response items stored for the event.
+
+        Time slots and individual participant availability are not included.
+        An empty event list is a successful response, not an error.
       operationId: listEvents
       responses:
         '200':
-          description: All event summaries
+          description: Event summaries returned successfully
           content:
             application/json:
               schema:
@@ -37,31 +44,36 @@ paths:
                   value:
                     events:
                       - event_id: 1
-                        event_name: CS 390 Study Group
-                        creator_name: Joshua
-                        response_count: 3
-                      - event_id: 2
                         event_name: Holiday Party
                         creator_name: Ben
                         response_count: 0
+                      - event_id: 2
+                        event_name: CS 390 Study Group
+                        creator_name: Joshua
+                        response_count: 3
+                      - event_id: 3
+                        event_name: Project Meeting
+                        creator_name: Maya
+                        response_count: 1
                 empty:
                   summary: No events
                   value:
                     events: []
+        '500':
+          $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
     post:
       summary: Create an event
       description: |
-        Creates a new event from a JSON body.
+        Creates a new event.
 
-        The request includes the event name, creator name, and between
-        2 and 10 possible start times. Each start time represents a
-        one-hour block and must begin at the top of the hour.
+        The request must include a nonblank event name, a nonblank creator
+        name, and between 2 and 10 unique possible start times.
 
-        Duplicate start times are not allowed within the same event.
-        The response contains the id of the new event.
+        Each start time represents a one-hour block and must begin at the
+        top of the hour. The server assigns the event id and time-slot ids.
       operationId: createEvent
       requestBody:
         required: true
@@ -78,15 +90,17 @@ paths:
                 - '2026-09-30T18:00:00-04:00'
       responses:
         '201':
-          description: Event created
+          description: Event created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateEventResponse'
               example:
-                event_id: 1
+                event_id: 2
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/CreateEventBadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
@@ -105,24 +119,28 @@ paths:
       operationId: getEvent
       responses:
         '200':
-          description: Event found
+          description: Event returned successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
               example:
-                event_id: 1
+                event_id: 2
                 event_name: CS 390 Study Group
                 creator_name: Joshua
                 time_slots:
-                  - slot_id: 1
-                    start_time: '2026-09-28T16:00:00-04:00'
-                  - slot_id: 2
-                    start_time: '2026-09-29T16:00:00-04:00'
                   - slot_id: 3
+                    start_time: '2026-09-28T16:00:00-04:00'
+                  - slot_id: 4
+                    start_time: '2026-09-29T16:00:00-04:00'
+                  - slot_id: 5
                     start_time: '2026-09-30T18:00:00-04:00'
+        '400':
+          $ref: '#/components/responses/InvalidEventId'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/EventNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
@@ -135,12 +153,12 @@ paths:
       description: |
         Records one participant response for an event.
 
-        The request contains the participant's name and the ids of the
-        time slots they are available for. Every selected slot must belong
-        to the event.
+        The request contains a nonblank participant name and a list of the
+        event time-slot ids the participant can attend. Every selected slot
+        must belong to the event and the same slot cannot be submitted twice.
 
-        An empty selected_slot_ids list is valid and means the participant
-        responded that none of the listed times work.
+        An empty selected_slot_ids list is valid. It means the participant
+        submitted a response but none of the proposed times work.
 
         Results are not returned by this endpoint. The Results page uses
         GET /api/events/{eventId}/results.
@@ -156,9 +174,12 @@ paths:
                 summary: Participant is available for some times
                 value:
                   participant_name: Clannys
-                  selected_slot_ids:
-                    - 1
-                    - 3
+                  selected_slot_ids: [3, 5]
+              allTimes:
+                summary: Participant is available for all times
+                value:
+                  participant_name: Alex
+                  selected_slot_ids: [3, 4, 5]
               noTimes:
                 summary: None of the times work
                 value:
@@ -166,7 +187,7 @@ paths:
                   selected_slot_ids: []
       responses:
         '201':
-          description: Availability submitted
+          description: Availability submitted successfully
           content:
             application/json:
               schema:
@@ -175,9 +196,11 @@ paths:
                 response_id: 1001
                 message: Availability submitted
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/SubmitAvailabilityBadRequest'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/EventNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
@@ -188,47 +211,69 @@ paths:
     get:
       summary: Get event results
       description: |
-        Returns the summary information needed for the Event Results page.
+        Returns the information needed for the Results page.
 
-        Availability is grouped by time slot. Each result includes the
-        time, the number of participants available, and the participant names.
-        The response also lists participants who submitted that none of the
-        proposed times work.
+        Responses are grouped by time slot. Each result includes the time,
+        the number of participants available, and their names.
+
+        Participants whose selected_slot_ids list is empty are returned in
+        none_available. They count toward response_count but do not increase
+        the availability count for any time.
+
+        An event with no responses still returns 200.
       operationId: getEventResults
       responses:
         '200':
-          description: Results for the event
+          description: Event results returned successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EventResults'
-              example:
-                event_id: 1
-                event_name: CS 390 Study Group
-                creator_name: Joshua
-                response_count: 3
-                results:
-                  - slot_id: 1
-                    start_time: '2026-09-28T16:00:00-04:00'
-                    available_count: 2
-                    participants:
-                      - Clannys
-                      - Alex
-                  - slot_id: 2
-                    start_time: '2026-09-29T16:00:00-04:00'
-                    available_count: 1
-                    participants:
-                      - Alex
-                  - slot_id: 3
-                    start_time: '2026-09-30T18:00:00-04:00'
-                    available_count: 2
-                    participants:
-                      - Clannys
-                      - Alex
-                none_available:
-                  - Diego
+              examples:
+                withResponses:
+                  summary: Results with participant responses
+                  value:
+                    event_id: 2
+                    event_name: CS 390 Study Group
+                    creator_name: Joshua
+                    response_count: 3
+                    results:
+                      - slot_id: 3
+                        start_time: '2026-09-28T16:00:00-04:00'
+                        available_count: 2
+                        participants: [Clannys, Alex]
+                      - slot_id: 4
+                        start_time: '2026-09-29T16:00:00-04:00'
+                        available_count: 1
+                        participants: [Alex]
+                      - slot_id: 5
+                        start_time: '2026-09-30T18:00:00-04:00'
+                        available_count: 2
+                        participants: [Clannys, Alex]
+                    none_available: [Diego]
+                noResponses:
+                  summary: Event exists but nobody has responded
+                  value:
+                    event_id: 1
+                    event_name: Holiday Party
+                    creator_name: Ben
+                    response_count: 0
+                    results:
+                      - slot_id: 1
+                        start_time: '2026-10-02T17:00:00-04:00'
+                        available_count: 0
+                        participants: []
+                      - slot_id: 2
+                        start_time: '2026-10-03T17:00:00-04:00'
+                        available_count: 0
+                        participants: []
+                    none_available: []
+        '400':
+          $ref: '#/components/responses/InvalidEventId'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/EventNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
@@ -236,8 +281,8 @@ paths:
     get:
       summary: Health check
       description: |
-        Returns whether the service can accept traffic, including whether
-        the database is reachable.
+        Returns whether the service can accept traffic and whether the
+        database is reachable.
       operationId: getHealth
       responses:
         '200':
@@ -248,8 +293,10 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
               example:
                 status: ok
+        '500':
+          $ref: '#/components/responses/InternalServerError'
         '503':
-          description: Database unavailable
+          description: A required dependency such as DynamoDB is temporarily unavailable
           content:
             application/json:
               schema:
@@ -263,34 +310,137 @@ components:
       name: eventId
       in: path
       required: true
-      description: Unique event identifier
+      description: Positive integer identifying an event
       schema:
         type: integer
         minimum: 1
-      example: 1
+      example: 2
 
   responses:
-    BadRequest:
-      description: The request is invalid
+    CreateEventBadRequest:
+      description: The Create Event request is invalid
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            invalidEvent:
-              summary: Invalid event data
+            invalidRequest:
+              summary: Missing body or wrong data type
               value:
                 error:
-                  code: BAD_REQUEST
+                  code: INVALID_REQUEST
+                  message: Request body is invalid
+            eventNameRequired:
+              summary: Event name is missing or blank
+              value:
+                error:
+                  code: EVENT_NAME_REQUIRED
+                  message: Event name is required
+            creatorNameRequired:
+              summary: Creator name is missing or blank
+              value:
+                error:
+                  code: CREATOR_NAME_REQUIRED
+                  message: Creator name is required
+            timeSlotsRequired:
+              summary: Time-slot list is missing
+              value:
+                error:
+                  code: TIME_SLOTS_REQUIRED
+                  message: Time slots are required
+            tooFewTimes:
+              summary: Fewer than two times
+              value:
+                error:
+                  code: INVALID_TIME_SLOT_COUNT
                   message: An event must have between 2 and 10 time slots
-            invalidAvailability:
-              summary: Invalid availability data
+            tooManyTimes:
+              summary: More than ten times
               value:
                 error:
-                  code: BAD_REQUEST
+                  code: INVALID_TIME_SLOT_COUNT
+                  message: An event must have between 2 and 10 time slots
+            duplicateTime:
+              summary: Duplicate proposed time
+              value:
+                error:
+                  code: DUPLICATE_TIME_SLOT
+                  message: Duplicate time slots are not allowed
+            invalidTime:
+              summary: Invalid date-time value
+              value:
+                error:
+                  code: INVALID_TIME_SLOT
+                  message: Each time slot must contain a valid date and time
+            notOnHour:
+              summary: Proposed time does not start on the hour
+              value:
+                error:
+                  code: TIME_NOT_ON_HOUR
+                  message: Each time slot must start at the top of the hour
+
+    SubmitAvailabilityBadRequest:
+      description: The Submit Availability request is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidEventId:
+              summary: Invalid event id
+              value:
+                error:
+                  code: INVALID_EVENT_ID
+                  message: eventId must be a positive integer
+            invalidRequest:
+              summary: Missing body or wrong data type
+              value:
+                error:
+                  code: INVALID_REQUEST
+                  message: Request body is invalid
+            participantNameRequired:
+              summary: Participant name is missing or blank
+              value:
+                error:
+                  code: PARTICIPANT_NAME_REQUIRED
+                  message: Participant name is required
+            selectedSlotsRequired:
+              summary: selected_slot_ids is missing
+              value:
+                error:
+                  code: SELECTED_SLOT_IDS_REQUIRED
+                  message: selected_slot_ids is required
+            duplicateSlot:
+              summary: Same slot id appears more than once
+              value:
+                error:
+                  code: DUPLICATE_SLOT_ID
+                  message: A time slot may only be selected once
+            invalidSlotId:
+              summary: Slot id is invalid
+              value:
+                error:
+                  code: INVALID_SLOT_ID
+                  message: Each selected slot id must be a positive integer
+            slotNotInEvent:
+              summary: Selected slot is not part of this event
+              value:
+                error:
+                  code: SLOT_NOT_IN_EVENT
                   message: A selected time slot does not belong to this event
 
-    NotFound:
+    InvalidEventId:
+      description: The event id is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_EVENT_ID
+              message: eventId must be a positive integer
+
+    EventNotFound:
       description: The requested event does not exist
       content:
         application/json:
@@ -301,8 +451,19 @@ components:
               code: EVENT_NOT_FOUND
               message: Event not found
 
+    InternalServerError:
+      description: An unexpected error occurred in the application
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_SERVER_ERROR
+              message: An unexpected server error occurred
+
     ServiceUnavailable:
-      description: The service or database is unavailable
+      description: A required dependency such as DynamoDB is temporarily unavailable
       content:
         application/json:
           schema:
@@ -317,12 +478,12 @@ components:
       type: integer
       minimum: 1
       description: Unique event identifier
-      example: 1
+      example: 2
 
     SlotId:
       type: integer
       minimum: 1
-      description: Unique time-slot identifier
+      description: Identifier for a time slot within an event
       example: 3
 
     ResponseId:
@@ -333,154 +494,138 @@ components:
 
     HealthResponse:
       type: object
-      required:
-        - status
+      additionalProperties: false
+      required: [status]
       properties:
         status:
           type: string
-          enum:
-            - ok
-            - unavailable
+          enum: [ok, unavailable]
 
     ErrorBody:
       type: object
-      required:
-        - code
-        - message
+      additionalProperties: false
+      required: [code, message]
       properties:
         code:
           type: string
           enum:
-            - BAD_REQUEST
+            - INVALID_REQUEST
+            - INVALID_EVENT_ID
+            - EVENT_NAME_REQUIRED
+            - CREATOR_NAME_REQUIRED
+            - TIME_SLOTS_REQUIRED
+            - INVALID_TIME_SLOT_COUNT
+            - DUPLICATE_TIME_SLOT
+            - INVALID_TIME_SLOT
+            - TIME_NOT_ON_HOUR
+            - PARTICIPANT_NAME_REQUIRED
+            - SELECTED_SLOT_IDS_REQUIRED
+            - DUPLICATE_SLOT_ID
+            - INVALID_SLOT_ID
+            - SLOT_NOT_IN_EVENT
             - EVENT_NOT_FOUND
+            - INTERNAL_SERVER_ERROR
             - SERVICE_UNAVAILABLE
         message:
           type: string
-          description: Human-readable explanation of the error
 
     ErrorResponse:
       type: object
-      required:
-        - error
+      additionalProperties: false
+      required: [error]
       properties:
         error:
           $ref: '#/components/schemas/ErrorBody'
 
     EventSummary:
       type: object
-      required:
-        - event_id
-        - event_name
-        - creator_name
-        - response_count
+      additionalProperties: false
+      required: [event_id, event_name, creator_name, response_count]
       properties:
         event_id:
           $ref: '#/components/schemas/EventId'
         event_name:
           type: string
           minLength: 1
-          description: Name of the event
-          example: CS 390 Study Group
+          maxLength: 255
         creator_name:
           type: string
           minLength: 1
-          description: Name of the event creator
-          example: Joshua
+          maxLength: 255
         response_count:
           type: integer
           minimum: 0
-          description: Number of submitted responses for the event
-          example: 3
 
     EventListResponse:
       type: object
-      required:
-        - events
+      additionalProperties: false
+      required: [events]
       properties:
         events:
           type: array
-          description: All event summaries
           items:
             $ref: '#/components/schemas/EventSummary'
 
     TimeSlot:
       type: object
-      required:
-        - slot_id
-        - start_time
+      additionalProperties: false
+      required: [slot_id, start_time]
       properties:
         slot_id:
           $ref: '#/components/schemas/SlotId'
         start_time:
           type: string
           format: date-time
-          description: Start of the one-hour time slot
-          example: '2026-09-28T16:00:00-04:00'
 
     Event:
       type: object
-      required:
-        - event_id
-        - event_name
-        - creator_name
-        - time_slots
+      additionalProperties: false
+      required: [event_id, event_name, creator_name, time_slots]
       properties:
         event_id:
           $ref: '#/components/schemas/EventId'
         event_name:
           type: string
           minLength: 1
+          maxLength: 255
         creator_name:
           type: string
           minLength: 1
+          maxLength: 255
         time_slots:
           type: array
           minItems: 2
           maxItems: 10
-          description: Possible one-hour meeting times for the event
+          uniqueItems: true
           items:
             $ref: '#/components/schemas/TimeSlot'
 
     CreateEventRequest:
       type: object
       additionalProperties: false
-      required:
-        - event_name
-        - creator_name
-        - time_slots
+      required: [event_name, creator_name, time_slots]
       properties:
         event_name:
           type: string
           minLength: 1
           maxLength: 255
-          description: Name of the event
-          example: CS 390 Study Group
         creator_name:
           type: string
           minLength: 1
           maxLength: 255
-          description: Name of the person creating the event
-          example: Joshua
         time_slots:
           type: array
           minItems: 2
           maxItems: 10
           uniqueItems: true
-          description: |
-            Possible start times for the event. Each value represents a
-            one-hour block and must begin at the top of the hour.
           items:
             type: string
             format: date-time
-          example:
-            - '2026-09-28T16:00:00-04:00'
-            - '2026-09-29T16:00:00-04:00'
-            - '2026-09-30T18:00:00-04:00'
 
     CreateEventResponse:
       type: object
-      required:
-        - event_id
+      additionalProperties: false
+      required: [event_id]
       properties:
         event_id:
           $ref: '#/components/schemas/EventId'
@@ -488,47 +633,34 @@ components:
     SubmitAvailabilityRequest:
       type: object
       additionalProperties: false
-      required:
-        - participant_name
-        - selected_slot_ids
+      required: [participant_name, selected_slot_ids]
       properties:
         participant_name:
           type: string
           minLength: 1
           maxLength: 255
-          description: Name entered by the participant
-          example: Clannys
         selected_slot_ids:
           type: array
+          minItems: 0
+          maxItems: 10
           uniqueItems: true
-          description: |
-            IDs of the event time slots the participant can attend.
-            An empty list means none of the proposed times work.
           items:
             $ref: '#/components/schemas/SlotId'
-          example:
-            - 1
-            - 3
 
     SubmitAvailabilityResponse:
       type: object
-      required:
-        - response_id
-        - message
+      additionalProperties: false
+      required: [response_id, message]
       properties:
         response_id:
           $ref: '#/components/schemas/ResponseId'
         message:
           type: string
-          example: Availability submitted
 
     EventResultItem:
       type: object
-      required:
-        - slot_id
-        - start_time
-        - available_count
-        - participants
+      additionalProperties: false
+      required: [slot_id, start_time, available_count, participants]
       properties:
         slot_id:
           $ref: '#/components/schemas/SlotId'
@@ -538,15 +670,14 @@ components:
         available_count:
           type: integer
           minimum: 0
-          description: Number of participants available for this time
         participants:
           type: array
-          description: Names of participants available for this time
           items:
             type: string
 
     EventResults:
       type: object
+      additionalProperties: false
       required:
         - event_id
         - event_name
@@ -559,21 +690,22 @@ components:
           $ref: '#/components/schemas/EventId'
         event_name:
           type: string
+          minLength: 1
+          maxLength: 255
         creator_name:
           type: string
+          minLength: 1
+          maxLength: 255
         response_count:
           type: integer
           minimum: 0
-          description: Total number of submitted responses
         results:
           type: array
           minItems: 2
           maxItems: 10
-          description: Availability summary for each event time slot
           items:
             $ref: '#/components/schemas/EventResultItem'
         none_available:
           type: array
-          description: Participants who responded that none of the times work
           items:
             type: string
