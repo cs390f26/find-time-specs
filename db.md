@@ -24,6 +24,7 @@ The application needs to support these data operations:
 - Group responses by time slot
 - List participants available for each time slot
 - List participants who responded that no time works
+- For this phase, listing all events uses a table scan for EVENT items, while operations for a specific event use event_id to retrieve that event and its responses.
 
 ---
 
